@@ -4,7 +4,7 @@ import { ReactComponent as ZoomIn } from './assets/icons/ic_zoom_in_black_24px.s
 import { ReactComponent as ZoomOut } from './assets/icons/ic_zoom_out_black_24px.svg';
 import { ReactComponent as AnnotationRectangle } from './assets/icons/ic_annotation_square_black_24px.svg';
 import { ReactComponent as AnnotationRedact } from './assets/icons/ic_annotation_add_redact_black_24px.svg';
-import { ReactComponent as AnnotationApplyRedact} from './assets/icons/ic_annotation_apply_redact_black_24px.svg';
+import { ReactComponent as AnnotationApplyRedact } from './assets/icons/ic_annotation_apply_redact_black_24px.svg';
 import { ReactComponent as Search } from './assets/icons/ic_search_black_24px.svg';
 import { ReactComponent as Select } from './assets/icons/ic_select_black_24px.svg';
 import './App.css';
@@ -31,15 +31,8 @@ const App = () => {
     docViewer.setScrollViewElement(scrollView.current);
     docViewer.setViewerElement(viewer.current);
     docViewer.setOptions({ enableAnnotations: true });
-    docViewer.loadDocument('/files/pdftron_about.pdf');
-
     setDocViewer(docViewer);
 
-    docViewer.on('documentLoaded', () => {
-      console.log('document loaded');
-      docViewer.setToolMode(docViewer.getTool('AnnotationEdit'));
-      setAnnotManager(docViewer.getAnnotationManager());
-    });
   }, []);
 
   const zoomOut = () => {
@@ -50,22 +43,34 @@ const App = () => {
     docViewer.zoomTo(docViewer.getZoom() + 0.25);
   };
 
-  const createRectangle = () => {
-    docViewer.setToolMode(docViewer.getTool('AnnotationCreateRectangle'));
-  };
+  const loadDocument = () => {
+    console.log("loadDocument");
+    var file = null
+    var input = document.createElement('input');
+    input.type = 'file';
 
-  const selectTool = () => {
-    docViewer.setToolMode(docViewer.getTool('AnnotationEdit'));
-  };
+    input.onchange = e => {
+      file = e.target.files[0];
+      if (file) {
+        if (docViewer.getDocument()) {
+          docViewer.clearSelection();
+          docViewer.displayPageLocation(1, 0, 0, false);
+        }
+        docViewer.loadDocument(file);
+        docViewer.on('documentLoaded', () => {
+          docViewer.setToolMode(docViewer.getTool('AnnotationEdit'));
+          docViewer.zoomTo(1);
+          docViewer.displayPageLocation(0, 0, 0, false);
+          docViewer.on('textSelected', (quads, selectedText, pageNumber) => {
+            console.log(quads);
+            console.log(selectedText);
+            console.log(pageNumber);
+          });
+        });
+      }
+    }
 
-  const createRedaction = () => {
-    docViewer.setToolMode(docViewer.getTool('AnnotationCreateRedaction'));
-  };
-
-  const applyRedactions = async () => {
-    const annotManager = docViewer.getAnnotationManager();
-    annotManager.enableRedaction(true);
-    await annotManager.applyRedactions();
+    input.click();
   };
 
   return (
@@ -78,40 +83,13 @@ const App = () => {
           <button onClick={zoomIn}>
             <ZoomIn />
           </button>
-          <button onClick={createRectangle}>
-            <AnnotationRectangle />
-          </button>
-          <button onClick={createRedaction}>
-            <AnnotationRedact />
-          </button>
-          <button onClick={applyRedactions}>
-            <AnnotationApplyRedact />
-          </button>
-          <button onClick={selectTool}>
-            <Select />
-          </button>
-          <button
-            onClick={() => {
-              // Flip the boolean
-              setSearchContainerOpen(prevState => !prevState);
-            }}
-          >
-            <Search />
+          <button onClick={loadDocument}>
+            Load Document
           </button>
         </div>
         <div className="flexbox-container" id="scroll-view" ref={scrollView}>
           <div id="viewer" ref={viewer}></div>
         </div>
-      </div>
-      <div className="flexbox-container">
-        <SearchContainer
-          Annotations={Annotations}
-          annotManager={annotManager}
-          docViewer={docViewer}
-          searchTermRef={searchTerm}
-          searchContainerRef={searchContainerRef}
-          open={searchContainerOpen}
-        />
       </div>
     </div>
   );
